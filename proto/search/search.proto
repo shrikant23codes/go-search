@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package search.v1;
+
+option go_package = "github.com/shrikant23codes/gosearch/proto/search";
+
+// A single search hit used as input to indexing and output of search
+// -float is 32-bit IEEE 754. BM25 scores live in a small range (~0–30 typically). Saving 4 bytes per hit × 10,000 RPS × 10 results = ~400 KB/sec of
+//  bandwidth. Free perf.
+// -top_k will never exceed a few hundred. int32 is 4 bytes whereas int64 is 8 bytes
+message Document {
+    string id = 1; // derived from document url hash
+    string title = 2; // weight 3.0x in BM25 Scoring
+    string abstract = 3; // weight 1.0x in BM25 Scoring
+    float score = 4; // populated on the response side; ignored on index
+}
+
+// Sent by gateway -> router -> indexnode
+message SearchRequest {
+    string query = 1; // raw user query, tokenized in indexnode
+    int32 top_k = 2; // how many hits to return
+    int32 shard_id = 3; // optional
+}
+
+message SearchResponse {
+    repeated Document docs = 1;
+    int64 latency_ms = 2; // server measured, useful for metrics
+}
+
+// Sentby ingester -> indexnode Bulk index
+message IndexRequest {
+    repeated Document docs = 1;
+    int32 shard_id = 2;
+}
+
+message IndexResponse {
+    int64 indexed_count = 1;
+    string error = 2; // empty on success
+}
+
+// Liveness / readiness. Plain grpc method and exposing index doc counts
+message HealthRequest {}
+message HealthResponse {
+    string status = 1; // "OK" | "DEGRADED" | "STARTING"
+    int64 index_size = 2; // number of docs currently indexed on this shard
+}
+
+// One service for all rpcs. All of it lives on indexnode
+// gateway and router are clients of this service
+service SearchService {
+    rpc Search (SearchRequest) returns (SearchResponse);
+    rpc Index (IndexRequest) returns (IndexResponse);
+    rpc Health (HealthRequest) returns (HealthResponse);
+}
