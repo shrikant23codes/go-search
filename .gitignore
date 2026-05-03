@@ -1,0 +1,38 @@
+# Binaries built by `go build` or the Dockerfile
+/bin/
+/out/
+gosearch-*
+!gosearch-*.go
+!gosearch-*.md
+
+# Data dumps — Wikipedia XML is ~800MB, never commit it
+/data/
+
+# BadgerDB on-disk state (per-shard LSM directories)
+*.badger/
+/badger/
+/var/
+
+# Test/coverage output
+*.out
+*.test
+coverage.txt
+profile.out
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
+# Secrets — never commit env files
+.env
+.env.*
+!.env.example
+
+# k6 load test artifacts
+summary.json
+summary.html
