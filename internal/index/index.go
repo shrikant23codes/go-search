@@ -6,6 +6,8 @@ import (
 	"hash/fnv"
 	"sort"
 	"sync"
+
+	"github.com/dgraph-io/badger/v4"
 )
 
 type Document struct {
@@ -27,6 +29,7 @@ type Index struct {
 	docLens   map[uint64]int           // docID -> token count for BM25 length norm
 	totalLen  int                      // sum of all doc lengths; avgDL = totalLen / len(docs)
 	tokenizer Tokenizer
+	db        *badger.DB // For persisting docID -> docContent mapping
 }
 
 func New() *Index {
@@ -38,9 +41,26 @@ func New() *Index {
 	}
 }
 
+// First insert in inmemory index and then persist to badgerDB. This way we can ensure that the document is searchable immediately after Add returns.
+// But obviously a gap that we don't persist to badgerDB.
+// Can have a background goroutine do it.
+func (idx *Index) Add(doc Document) error {
+	if err := idx.addInMemory(doc); err != nil {
+		return err
+	}
+
+	if idx.db != nil {
+		err := idx.persistDoc(doc)
+		if err != nil {
+			return fmt.Errorf("failed to persist document %q: %w", doc.ID, err)
+		}
+	}
+	return nil
+}
+
 // Add document to index, return error on empty ID, duplicate ID
 // or hash collision with different doc
-func (idx *Index) Add(doc Document) error {
+func (idx *Index) addInMemory(doc Document) error {
 	if doc.ID == "" {
 		return errors.New("document ID is empty")
 	}
