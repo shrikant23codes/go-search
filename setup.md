@@ -45,3 +45,13 @@ BadgerDB integration
 ```
 $ go get github.com/dgraph-io/badger/v4
 ```
+
+Running benchmarks:
+
+```
+// Run all benchMarks matching pattern "." so all benchmarks
+$ go test -bench=. -benchmem -short ./internal/index/...
+
+// Run only this benchmark
+$ go test -bench=BenchmarkSearch_1kDocs -benchmem -short ./internal/index/...
+```

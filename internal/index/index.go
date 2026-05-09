@@ -133,6 +133,9 @@ func (idx *Index) Search(query string, topK int) []SearchResult {
 	}
 
 	// Now rank the documents by score and return topK results
+	// Thoughts after running benchmarks:
+	// This is O(M log M) where M is the number of matching docs.
+	//  For large M we can optimize by using a min-heap of size K instead of sorting all results.
 	results := make([]SearchResult, 0, len(scores))
 	for docID, score := range scores {
 		doc := idx.docs[docID]

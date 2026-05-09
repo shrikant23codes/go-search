@@ -37,6 +37,19 @@ Once added, run them with:
 go test -bench=. -benchmem ./internal/index/...
 ```
 
+## Benchmarks
+
+Synthetic 45-word vocabulary corpus (worst-case posting list sizes).
+
+| Corpus | Latency | Memory |
+|---|---|---|
+| 1k docs | 274 μs/op | 0.17 MB/op |
+| 100k docs | 31 ms/op | 13.7 MB/op |
+| 1M docs | 516 ms/op | 155 MB/op |
+| Index 500 docs | 5.79 ms/op | 4.83 MB/op |
+
+Real Wikipedia data has a much larger vocabulary so posting lists will be sparser. Full numbers after ingest in Phase 3.
+
 ## Quick start
 
 The project is a work in progress. The index layer is functional; a gRPC server layer and query API are planned next.
