@@ -77,7 +77,7 @@ go build ./cmd/indexnode && ./indexnode
 
 ### 2) Running Ingester
 
-````
+```
 $ chmod +x data/download_wiki.sh
 $ ./download_wiki.sh
 $ go build ./cmd/ingester && ./ingester \
