@@ -55,3 +55,9 @@ $ go test -bench=. -benchmem -short ./internal/index/...
 // Run only this benchmark
 $ go test -bench=BenchmarkSearch_1kDocs -benchmem -short ./internal/index/...
 ```
+
+// Install prometheus client
+
+```
+$ go get github.com/prometheus/client_golang@latest
+```
