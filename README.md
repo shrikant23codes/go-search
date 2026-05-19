@@ -66,3 +66,45 @@ To open a persistent index backed by BadgerDB:
 idx, err := index.Open("/path/to/data")
 defer idx.Close()
 ```
+
+## Ingestion Flow
+
+### 1) Run indexnode:
+
+```
+go build ./cmd/indexnode && ./indexnode
+```
+
+### 2) Running Ingester
+
+````
+$ chmod +x data/download_wiki.sh
+$ ./download_wiki.sh
+$ go build ./cmd/ingester && ./ingester \
+    --dump-path=data/enwiki_content-20260510-00010.json.bz2 \
+    --indexnode-addrs=localhost:9001 \
+    --batch-size=50 \
+    --limit=1000
+```
+
+This should give output like:
+
+```
+2026/05/19 12:59:15 indexed 50 docs (total ~1000)
+2026/05/19 12:59:15 done: 1000 docs ingested in 955ms
+```
+
+### 3) Health Check grpc curl to get index count
+```
+$ brew install grpcurl
+
+$ grpcurl -plaintext \
+    -proto proto/search/search.proto \
+    localhost:9001 \
+    search.v1.SearchService/Health
+
+Response = {
+  "status": "OK",
+  "indexSize": "1000"
+}
+```
