@@ -108,3 +108,58 @@ Response = {
   "indexSize": "1000"
 }
 ```
+
+
+## Gateway Server
+
+A http server, gateway, which forwards the calls to the internal grpc indexnode server
+
+
+### 1) Run indexnode:
+
+```
+go build ./cmd/indexnode && ./indexnode
+```
+
+### 2) Run gateway:
+
+```
+go build ./cmd/gateway && ./gateway
+```
+
+### 3) Requests
+
+```
+health check
+$ curl "localhost:8080/health"
+resp: {"status":"OK","index_size":1000}
+
+Search without api key
+$ curl "localhost:8080/search?q=test"
+resp: unauthorized
+
+Search without q param
+$ curl -H "X-API-Key: dev-key" "localhost:8080/search"
+missing q param
+
+Search req:
+$ curl -H "X-API-Key: dev-key" "localhost:8080/search?q=machine+learning"
+
+{"latency_ms":7042,"results":[{"id":...
+
+```
+
+Gateway logs:
+```
+2026/05/22 18:57:17 Gateway listening on :8080
+2026/05/22 18:57:28 "GET http://localhost:8080/health HTTP/1.1" from [::1]:50492 - 200 46B in 30.028ms
+2026/05/22 18:58:18 "GET http://localhost:8080/search?q=machine+learning HTTP/1.1" from [::1]:50501 - 200 4738B in 800.042µs
+2026/05/22 18:59:16 "GET http://localhost:8080/search?q=test HTTP/1.1" from [::1]:50505 - 401 13B in 7.542µs
+2026/05/22 18:59:29 "GET http://localhost:8080/health HTTP/1.1" from [::1]:50507 - 200 46B in 580.834µs
+2026/05/22 18:59:44 "GET http://localhost:8080/search HTTP/1.1" from [::1]:50509 - 400 16B in 29.917µs
+2026/05/22 19:00:18 "GET http://localhost:8080/health HTTP/1.1" from [::1]:50511 - 503 35B in 346.166µs
+2026/05/22 19:00:34 "GET http://localhost:8080/health HTTP/1.1" from [::1]:50527 - 200 46B in 656.958µs
+2026/05/22 19:02:45 "GET http://localhost:8080/search?q=test HTTP/1.1" from [::1]:50686 - 401 13B in 7.584µs
+2026/05/22 19:03:12 "GET http://localhost:8080/search HTTP/1.1" from [::1]:50688 - 400 16B in 32.958µs
+2026/05/22 19:03:33 "GET http://localhost:8080/search?q=machine+learning HTTP/1.1" from [::1]:50695 - 200 4737B in 552.459µs
+```
