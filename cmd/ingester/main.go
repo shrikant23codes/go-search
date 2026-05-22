@@ -107,7 +107,8 @@ func sendBatch(clients []pb.SearchServiceClient, batch []*pb.Document, cursor in
 
 	resp, err := client.Index(ctx, &pb.IndexRequest{Docs: batch})
 	if err != nil {
-		log.Fatalf("Failed to index batch error is: %v", err)
+		log.Printf("Failed to index batch error is: %v", err)
+		return
 	}
 
 	log.Printf("indexed %d docs (total ~%d)", resp.IndexedCount, cursor+int(resp.IndexedCount))

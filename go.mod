@@ -4,7 +4,9 @@ go 1.25.4
 
 require (
 	github.com/dgraph-io/badger/v4 v4.9.1
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/prometheus/client_golang v1.23.2
+	golang.org/x/time v0.15.0
 	google.golang.org/grpc v1.80.0
 	google.golang.org/protobuf v1.36.11
 )

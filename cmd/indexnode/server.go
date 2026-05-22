@@ -46,9 +46,9 @@ func (s *indexNodeServer) Search(ct context.Context, req *pb.SearchRequest) (*pb
 
 	start := time.Now()
 	results := s.index.Search(req.Query, topK)
-	latency := time.Since(start)
+	latency := time.Since(start).Milliseconds()
 
-	docs := make([]*pb.Document, len(results))
+	docs := make([]*pb.Document, 0, len(results))
 	for _, res := range results {
 		docs = append(docs, &pb.Document{
 			Id:       res.ID,
