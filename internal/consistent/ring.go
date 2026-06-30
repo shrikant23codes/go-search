@@ -36,7 +36,9 @@ func (r *Ring) Add(node Node) {
 
 	for i := 0; i < vnodes; i++ {
 		h := hash(node.ID + "#" + strconv.Itoa(i))
-		r.ring = append(r.ring, h)
+		if _, exists := r.hashMap[h]; !exists {
+			r.ring = append(r.ring, h)
+		}
 		r.hashMap[h] = node
 	}
 	// Always sort ring after adding nodes to maintain order.

@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -128,8 +129,15 @@ func envStr(key, def string) string {
 }
 
 func envInt(key string, def int) int {
-	if v := os.Getenv(key); v != "" {
+	value, ok := os.LookupEnv(key)
+	if !ok {
 		return def
 	}
-	return def
+
+	number, err := strconv.Atoi(value)
+	if err != nil {
+		log.Fatalf("invalid %s=%q: %v", key, value, err)
+	}
+
+	return number
 }
