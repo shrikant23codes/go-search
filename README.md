@@ -163,3 +163,21 @@ Gateway logs:
 2026/05/22 19:03:12 "GET http://localhost:8080/search HTTP/1.1" from [::1]:50688 - 400 16B in 32.958µs
 2026/05/22 19:03:33 "GET http://localhost:8080/search?q=machine+learning HTTP/1.1" from [::1]:50695 - 200 4737B in 552.459µs
 ```
+
+## Progress Update
+
+GoSearch progress: a distributed search engine built in Go
+
+- **Wikipedia ingestion:** Built a streaming parser that processes large Wikipedia dumps without loading them fully into memory, then persists indexed documents in BadgerDB.
+
+- **Inverted index + BM25:** Implemented tokenization, posting lists, field-weighted BM25 ranking, and concurrency-safe index access. Title matches receive more weight than abstract matches.
+
+- **gRPC index nodes**: Each shard runs as an independent gRPC service supporting indexing, search, and health checks, with separate metrics and profiling endpoints.
+
+- **HTTP API gateway:** Added REST endpoints over the gRPC backend, API-key authentication, per-key token-bucket rate limiting, and request cancellation propagation.
+
+- **Consistent hashing + etcd discovery:** Built a consistent hash ring using 150 virtual nodes per shard. Nodes register through etcd leases, enabling automatic discovery and removal after failures.
+
+- **Parallel query fan-out:** The router searches all shards concurrently with per-shard deadlines. Healthy shard results are still returned when another shard fails or times out.
+
+- **Circuit breakers:** Added per-endpoint circuit breakers with closed, open, and half-open states to avoid repeatedly calling unhealthy shards and reduce cascading failures.

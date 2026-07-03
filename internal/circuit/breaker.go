@@ -16,7 +16,7 @@ func NewBreaker[T any](name string, isExcluded func(error) bool) *gobreaker.Circ
 		Timeout:     30 * time.Second,
 
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
-			if counts.ConsecutiveFailures >= 1 {
+			if counts.ConsecutiveFailures >= 5 {
 				return true
 			}
 
