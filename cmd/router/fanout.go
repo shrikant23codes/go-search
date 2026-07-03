@@ -8,8 +8,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/shrikant23codes/gosearch/internal/circuit"
 	"github.com/shrikant23codes/gosearch/internal/consistent"
 	pb "github.com/shrikant23codes/gosearch/proto/search"
+	"github.com/sony/gobreaker/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
@@ -22,9 +24,10 @@ type RouterServer struct {
 	ring         *consistent.Ring
 	shardTimeout time.Duration
 
-	mu      sync.RWMutex
-	clients map[string]pb.SearchServiceClient
-	conns   map[string]*grpc.ClientConn
+	mu       sync.RWMutex
+	clients  map[string]pb.SearchServiceClient
+	conns    map[string]*grpc.ClientConn
+	breakers map[string]*gobreaker.CircuitBreaker[*pb.SearchResponse]
 }
 
 func NewRouterServer(ring *consistent.Ring, shardTimeout time.Duration) *RouterServer {
@@ -33,6 +36,7 @@ func NewRouterServer(ring *consistent.Ring, shardTimeout time.Duration) *RouterS
 		shardTimeout: shardTimeout,
 		clients:      make(map[string]pb.SearchServiceClient),
 		conns:        make(map[string]*grpc.ClientConn),
+		breakers:     make(map[string]*gobreaker.CircuitBreaker[*pb.SearchResponse]),
 	}
 }
 
@@ -137,18 +141,23 @@ func (r *RouterServer) fanout(ctx context.Context, req *pb.SearchRequest) ([]*pb
 			shardCtx, cancel := context.WithTimeout(ctx, r.shardTimeout)
 			defer cancel()
 
-			client, err := r.ClientFor(n)
-			if err != nil {
-				errs[i] = err
-				return
-			}
+			breaker := r.breakerFor(node)
 
-			shardReq := &pb.SearchRequest{
-				Query:   req.Query,
-				TopK:    req.TopK,
-				ShardId: req.ShardId,
-			}
-			res, err := client.Search(shardCtx, shardReq)
+			res, err := breaker.Execute(func() (*pb.SearchResponse, error) {
+				client, err := r.ClientFor(n)
+				if err != nil {
+					errs[i] = err
+					return nil, err
+				}
+				shardReq := &pb.SearchRequest{
+					Query:   req.Query,
+					TopK:    req.TopK,
+					ShardId: req.ShardId,
+				}
+
+				return client.Search(shardCtx, shardReq)
+			})
+
 			if err != nil {
 				errs[i] = err
 				return
@@ -178,6 +187,27 @@ func (r *RouterServer) fanout(ctx context.Context, req *pb.SearchRequest) ([]*pb
 
 	return responses, nil
 
+}
+
+func (r *RouterServer) breakerFor(node consistent.Node) *gobreaker.CircuitBreaker[*pb.SearchResponse] {
+	key := node.ID + "@" + node.Address
+
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if breaker, ok := r.breakers[key]; ok {
+		return breaker
+	}
+
+	breaker := circuit.NewBreaker[*pb.SearchResponse](
+		key,
+		func(err error) bool {
+			return status.Code(err) == codes.Canceled
+		},
+	)
+
+	r.breakers[key] = breaker
+	return breaker
 }
 
 func (r *RouterServer) ClientFor(node consistent.Node) (pb.SearchServiceClient, error) {
