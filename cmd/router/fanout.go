@@ -10,6 +10,7 @@ import (
 
 	"github.com/shrikant23codes/gosearch/internal/circuit"
 	"github.com/shrikant23codes/gosearch/internal/consistent"
+	"github.com/shrikant23codes/gosearch/internal/merger"
 	pb "github.com/shrikant23codes/gosearch/proto/search"
 	"github.com/sony/gobreaker/v2"
 	"google.golang.org/grpc"
@@ -79,7 +80,8 @@ func (r *RouterServer) Search(ctx context.Context, req *pb.SearchRequest) (*pb.S
 		return nil, err
 	}
 
-	docs := mergeTemporary(responses, int(topK))
+	// docs := mergeTemporary(responses, int(topK))
+	docs := merger.Merge(responses, int(topK))
 
 	return &pb.SearchResponse{
 		Docs:      docs,
